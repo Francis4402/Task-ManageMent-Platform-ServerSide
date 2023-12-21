@@ -71,7 +71,9 @@ app.get('/logout', async (req, res) => {
 })
 
 app.get('/tasks', async (req, res) => {
-    const result = taskCollection.find().toArray();
+    const email = req.query.email;
+    const query = {email: email}
+    const result = await taskCollection.find(query).toArray();
     res.send(result);
 })
 
