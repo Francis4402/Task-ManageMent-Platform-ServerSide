@@ -8,6 +8,7 @@ require('dotenv').config();
 
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const {query} = require("express");
 
 app.use(cors());
 app.use(express.json());
@@ -38,7 +39,7 @@ const logger = async (req, res, next) => {
 }
 
 const taskCollection = client.db('tasky').collection('AllTasks');
-
+const userCollection = client.db('tasky').collection('users');
 
 app.get('/', (req, res) => {
     res.send('Server Started');
@@ -70,14 +71,37 @@ app.get('/logout', async (req, res) => {
     res.clearCookie('token', {maxAge: 0}).send({success: true});
 })
 
-app.get('/tasks', async (req, res) => {
+app.get('/userdata', async (req, res) => {
+    const result = await userCollection.find().toArray();
+    res.send(result);
+})
+
+app.get('/users', verifyToken, async (req, res) => {
+    const email = req.query.email;
+    const query = {email: email}
+    const result = await userCollection.find(query).toArray();
+    res.send(result);
+})
+
+app.post('/users', verifyToken, async (req, res) => {
+    const users = req.body;
+    const query = {email: users.email}
+    const existingUser = await userCollection.findOne(query);
+    if(existingUser){
+        return res.send({message: 'user already exists', insertedId: null})
+    }
+    const result = await userCollection.insertOne(users);
+    res.send(result);
+})
+
+app.get('/tasks', verifyToken, async (req, res) => {
     const email = req.query.email;
     const query = {email: email}
     const result = await taskCollection.find(query).toArray();
     res.send(result);
 })
 
-app.post('/tasks', async (req, res) => {
+app.post('/tasks', verifyToken, async (req, res) => {
     const tasks = req.body;
     const result = await taskCollection.insertOne(tasks);
     res.send(result);
